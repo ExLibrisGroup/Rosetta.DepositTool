@@ -1,0 +1,7 @@
+title=Instant Deposit Tool
+filename=Filename
+folder=Folder
+add.files=Add Files
+open=Open
+remove=Remove
+submit=Submit
