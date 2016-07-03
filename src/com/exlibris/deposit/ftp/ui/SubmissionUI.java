@@ -109,7 +109,7 @@ public class SubmissionUI extends LogObject {
 		// Enable a table as a Drop Target
 		final Table fileTable = new Table(shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
 
-		fileTable.setBounds(10, height + 30, 430, 204);
+		fileTable.setBounds(10, height + 30, 409, 204);
 		fileTable.setHeaderVisible(true);
 		fileTable.setLinesVisible(true);
 
@@ -148,6 +148,7 @@ public class SubmissionUI extends LogObject {
 		});
 
 		Button submitButton = new Button(shell, SWT.NONE);
+		Button removeButton = new Button(shell, SWT.NONE);
 		
 		Button addButton = new Button(shell, SWT.NONE);
 		addButton.setText(UILabels.getLabel("add.files"));
@@ -166,19 +167,25 @@ public class SubmissionUI extends LogObject {
 					addTableItem(path + File.separator + name, fileTable);
 				}
 				if (!Objects.equals(path, ""))
-					submitButton.setEnabled(true);				
+				{
+					submitButton.setEnabled(true);
+					removeButton.setEnabled(true);
+				}
 			}
 		});
 
-		Button removeButton = new Button(shell, SWT.NONE);
 		removeButton.setText(UILabels.getLabel("remove"));
 		removeButton.setBounds(235, height + 245, 90, 25);
+		removeButton.setEnabled(false);
 		removeButton.addMouseListener(new MouseAdapter() {
 			public void mouseDown(MouseEvent e) {
 				fileTable.remove(fileTable.getSelectionIndices());
 				
 				if(fileTable.getItemCount() == 0)
+				{
 					submitButton.setEnabled(false);
+					removeButton.setEnabled(false);
+				}
 			}
 		});
 
