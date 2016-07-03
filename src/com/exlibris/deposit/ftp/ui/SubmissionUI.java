@@ -1,8 +1,11 @@
 package com.exlibris.deposit.ftp.ui;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.dnd.DND;
@@ -41,8 +44,8 @@ import com.exlibris.deposit.ftp.LogObject;
 public class SubmissionUI extends LogObject {
 
 	private final Display display = Display.getDefault();
-	private final Shell shell = new Shell(display);
-
+	private final Shell shell = new Shell(display, SWT.SHELL_TRIM & (~SWT.RESIZE));
+	
 	private final Color colorWhite = new Color(null, new RGB(255, 255, 255));
 
 	private void addTableItem(String filename, Table fileTable) {
@@ -90,11 +93,16 @@ public class SubmissionUI extends LogObject {
 			label.setBackground(colorWhite);
 			label.setAlignment(SWT.LEFT);
 
-			text = new Text(shell, SWT.BORDER);
+			text = new Text(shell, SWT.BORDER);		
 			text.setText(entry.getValue());
+						
+			if(Objects.equals(entry.getKey(),"dc:date") && Objects.equals(entry.getValue(), "")){
+				text.setText(new SimpleDateFormat("dd/MM/yyyy").format(Calendar.getInstance().getTime()));
+			}
+			
 			text.setBounds(85, height, 355, 20);
 			text.setData("field", entry.getKey());
-
+						
 			height += 27;
 		}
 
@@ -139,6 +147,8 @@ public class SubmissionUI extends LogObject {
 			}
 		});
 
+		Button submitButton = new Button(shell, SWT.NONE);
+		
 		Button addButton = new Button(shell, SWT.NONE);
 		addButton.setText(UILabels.getLabel("add.files"));
 		addButton.setBounds(135, height + 245, 90, 25);
@@ -155,6 +165,8 @@ public class SubmissionUI extends LogObject {
 				for (String name : fd.getFileNames()) {
 					addTableItem(path + File.separator + name, fileTable);
 				}
+				if (!Objects.equals(path, ""))
+					submitButton.setEnabled(true);				
 			}
 		});
 
@@ -164,6 +176,9 @@ public class SubmissionUI extends LogObject {
 		removeButton.addMouseListener(new MouseAdapter() {
 			public void mouseDown(MouseEvent e) {
 				fileTable.remove(fileTable.getSelectionIndices());
+				
+				if(fileTable.getItemCount() == 0)
+					submitButton.setEnabled(false);
 			}
 		});
 
@@ -180,7 +195,8 @@ public class SubmissionUI extends LogObject {
 		loadingLabel.setVisible(false);
 		loadingLabel.setData("submit", true);
 
-		final Text logText = new Text(shell, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL);
+		final Text logText = new Text(shell, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL | SWT.READ_ONLY | SWT.WRAP);
+		
 		logText.setBounds(10, 40, 430, totalHeight - 150);
 		logText.setVisible(false);
 		logText.setData("submit", true);
@@ -198,7 +214,7 @@ public class SubmissionUI extends LogObject {
 			}
 		});
 
-		Button submitButton = new Button(shell, SWT.NONE);
+		submitButton.setEnabled(false);
 		submitButton.setText(UILabels.getLabel("submit"));
 		submitButton.setBounds(170, height + 290, 120, 35);
 		submitButton.setFont(new Font(null, fontData));
