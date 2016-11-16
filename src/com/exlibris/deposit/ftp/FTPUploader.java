@@ -135,10 +135,13 @@ public class FTPUploader extends LogObject {
 		FileSystemManager fsManager = VFS.getManager();
 		FileSystemOptions fsOptions = new FileSystemOptions();
 		
+		SftpFileSystemConfigBuilder.getInstance().setStrictHostKeyChecking(
+	                fsOptions, "no");
+		
 		SftpFileObject sftpDir = (SftpFileObject)fsManager.resolveFile(
 				"sftp://"+sftpUser+"@"+host+":22/"+
-						path, fsOptions);
-			
+						path, fsOptions);	
+		
 		log("Copying deposit directory to server");
 		
 		File depositDirectory = new File(DepositProperties.getValue(DepositProperties.DEPOSIT_TEMP_DIR));
