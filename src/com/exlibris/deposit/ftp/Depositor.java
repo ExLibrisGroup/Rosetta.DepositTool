@@ -18,6 +18,7 @@ import com.exlibris.dps.DepositWebServices_Service;
 import com.exlibris.dps.DepositWebServices;
 import com.exlibris.dps.ProducerWebServices;
 import com.exlibris.dps.ProducerWebServices_Service;
+import com.exlibris.dps.sdk.pds.HeaderHandlerResolver;
 import com.exlibris.dps.sdk.pds.PdsClient;
 
 public class Depositor extends LogObject {
@@ -34,15 +35,15 @@ public class Depositor extends LogObject {
 		// Connect to PDS
 		PdsClient pds = PdsClient.getInstance();
 		pds.init(DepositProperties.getValue(DepositProperties.PDS_URL), false);
-		String pdsHandle = pds.login(DepositProperties.getValue(DepositProperties.INSTITUTION),username, password);
 
 		// Get Deposit webservice handle
 		log("Connecting to the deposit web services");
 
-		DepositWebServices dpws = null;
+		DepositWebServices_Service dpws = null;
 		try {
 			dpws = new DepositWebServices_Service(new URL(DepositProperties.getValue(DepositProperties.DEPOSIT_URL) + DEPOSIT_WSDL_URL),
-					new QName("http://dps.exlibris.com/", "DepositWebServices")).getDepositWebServicesPort();
+					new QName("http://dps.exlibris.com/", "DepositWebServices"));
+			dpws.setHandlerResolver(new HeaderHandlerResolver(username, password, DepositProperties.getValue(DepositProperties.INSTITUTION)));
 		} catch (MalformedURLException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -51,26 +52,27 @@ public class Depositor extends LogObject {
 
 		// Get Producer webservice handle
 		log("Connecting to the producer management web services");
-		ProducerWebServices pws = null;
+		ProducerWebServices_Service pws = null;
 		try {
 			pws = new ProducerWebServices_Service(new URL(DepositProperties.getValue(DepositProperties.BACKOFFICE_URL) + PRODUCER_WSDL_URL),
-					new QName("http://dps.exlibris.com/", "ProducerWebServices")).getProducerWebServicesPort();
+					new QName("http://dps.exlibris.com/", "ProducerWebServices"));
+			pws.setHandlerResolver(new HeaderHandlerResolver(username, password, DepositProperties.getValue(DepositProperties.INSTITUTION)));
 		} catch (MalformedURLException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		//Get list of producers that the producerAgent is affiliated with
 		log("Retrieving producer information");
-		String producerAgentId = pws.getInternalUserIdByExternalId(username);
-		String xmlReply = pws.getProducersOfProducerAgent(producerAgentId);
+		String producerAgentId = pws.getProducerWebServicesPort().getInternalUserIdByExternalId(username);
+		String xmlReply = pws.getProducerWebServicesPort().getProducersOfProducerAgent(producerAgentId);
 		DepositDataDocument depositDataDocument = DepositDataDocument.Factory.parse(xmlReply);
 		DepositData depositData = depositDataDocument.getDepositData();
 
 		String producerId = depositData.getDepDataArray(0).getId();
 
 		log("Depositing content");
-		String retval = dpws.submitDepositActivity(
-				pdsHandle, DepositProperties.getValue(DepositProperties.MATERIAL_FLOW), depositDirectory, producerId, "1");
+		String retval = dpws.getDepositWebServicesPort().submitDepositActivity(
+				null, DepositProperties.getValue(DepositProperties.MATERIAL_FLOW), depositDirectory, producerId, "1");
 
 		try {
 			DepositResult result = DepositResultDocument.Factory.parse(retval).getDepositResult();
