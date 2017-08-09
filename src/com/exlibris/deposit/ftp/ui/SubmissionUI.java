@@ -43,10 +43,18 @@ import com.exlibris.deposit.ftp.LogObject;
 
 public class SubmissionUI extends LogObject {
 
-	private final Display display = Display.getDefault();
-	private final Shell shell = new Shell(display, SWT.SHELL_TRIM & (~SWT.RESIZE));
-	
+	private static final String PASSWORD_PARAM = "Rosetta Password";
+	private static final String USERNAME_PARAM = "Rosetta User Name";
+	private static final String FTP_PASSWORD_PARAM = "FTP Password";
+	private static final String FTP_USERNAME_PARAM = "FTP User Name";
+	private Display display = Display.getDefault();
+	private Shell shell = new Shell(display, SWT.SHELL_TRIM & (~SWT.RESIZE));
 	private final Color colorWhite = new Color(null, new RGB(255, 255, 255));
+
+	private String username = null;
+	private String password = null;
+	private String ftpUsername = null;
+	private String ftpPassword = null;
 
 	private void addTableItem(String filename, Table fileTable) {
 		File file = new File(filename);
@@ -71,7 +79,11 @@ public class SubmissionUI extends LogObject {
 
 	public SubmissionUI(String[] filenames) {
 
-		int totalHeight = (MetadataProperties.getMetadataFields().size() * 27) + 400;
+		runSubmissionApp(filenames);
+	}
+
+	private void runSubmissionApp(String[] filenames) {
+		int totalHeight = (MetadataProperties.getMetadataFields().size() * 27) + 460;
 
 		// set shell size
 		final int screenMidWidth = display.getBounds().width / 2;
@@ -86,6 +98,10 @@ public class SubmissionUI extends LogObject {
 		Label label;
 
 		int height = 20;
+
+		height = createUsernamePasswordFields(height);
+
+
 		for (KeyValuePair<String, String> entry : MetadataProperties.getMetadataFields()) {
 			label = new Label(shell, SWT.FLAT);
 			label.setText(MetadataProperties.getValue(entry.getKey()));
@@ -93,16 +109,16 @@ public class SubmissionUI extends LogObject {
 			label.setBackground(colorWhite);
 			label.setAlignment(SWT.LEFT);
 
-			text = new Text(shell, SWT.BORDER);		
+			text = new Text(shell, SWT.BORDER);
 			text.setText(entry.getValue());
-						
+
 			if(Objects.equals(entry.getKey(),"dc:date") && Objects.equals(entry.getValue(), "")){
 				text.setText(new SimpleDateFormat("dd/MM/yyyy").format(Calendar.getInstance().getTime()));
 			}
-			
+
 			text.setBounds(85, height, 355, 20);
 			text.setData("field", entry.getKey());
-						
+
 			height += 27;
 		}
 
@@ -149,7 +165,7 @@ public class SubmissionUI extends LogObject {
 
 		Button submitButton = new Button(shell, SWT.NONE);
 		Button removeButton = new Button(shell, SWT.NONE);
-		
+
 		Button addButton = new Button(shell, SWT.NONE);
 		addButton.setText(UILabels.getLabel("add.files"));
 		addButton.setBounds(135, height + 245, 90, 25);
@@ -180,7 +196,7 @@ public class SubmissionUI extends LogObject {
 		removeButton.addMouseListener(new MouseAdapter() {
 			public void mouseDown(MouseEvent e) {
 				fileTable.remove(fileTable.getSelectionIndices());
-				
+
 				if(fileTable.getItemCount() == 0)
 				{
 					submitButton.setEnabled(false);
@@ -203,14 +219,31 @@ public class SubmissionUI extends LogObject {
 		loadingLabel.setData("submit", true);
 
 		final Text logText = new Text(shell, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL | SWT.READ_ONLY | SWT.WRAP);
-		
+
 		logText.setBounds(10, 40, 430, totalHeight - 150);
 		logText.setVisible(false);
 		logText.setData("submit", true);
 
+		height += 20;
+
+		final Button resubmitButton = new Button(shell, SWT.NONE);
+		resubmitButton.setText("New Deposit");
+		resubmitButton.setBounds(100, height + 290, 120, 35);
+		resubmitButton.setFont(new Font(null, fontData));
+		resubmitButton.setEnabled(false);
+		resubmitButton.setVisible(false);
+		resubmitButton.setData("submit", true);
+		resubmitButton.addMouseListener(new MouseAdapter() {
+			public void mouseDown(MouseEvent w) {
+				shell.dispose();
+				shell = new Shell(display, SWT.SHELL_TRIM & (~SWT.RESIZE));
+				runSubmissionApp(filenames);
+			}
+		});
+
 		final Button exitButton = new Button(shell, SWT.NONE);
 		exitButton.setText("Exit");
-		exitButton.setBounds(170, height + 290, 120, 35);
+		exitButton.setBounds(250, height + 290, 120, 35);
 		exitButton.setFont(new Font(null, fontData));
 		exitButton.setEnabled(false);
 		exitButton.setVisible(false);
@@ -220,6 +253,7 @@ public class SubmissionUI extends LogObject {
 				shell.dispose();
 			}
 		});
+
 
 		submitButton.setEnabled(false);
 		submitButton.setText(UILabels.getLabel("submit"));
@@ -235,10 +269,20 @@ public class SubmissionUI extends LogObject {
 
 					List<KeyValuePair<String, String>> metadata = new LinkedList<KeyValuePair<String, String>>();
 					for (Control control : shell.getChildren()) {
+
 						if ((control.getClass() == Text.class) && (control.getData("field") != null)){
 							Text text = (Text) control;
-							metadata.add(new KeyValuePair<String, String>(
-									text.getData("field").toString(), text.getText()));
+							if(text.getData("field").toString().equals(USERNAME_PARAM)) {
+								username = text.getText();
+							} else if(text.getData("field").toString().equals(PASSWORD_PARAM)) {
+								password = text.getText();
+							} else if(text.getData("field").toString().equals(FTP_USERNAME_PARAM)) {
+								ftpUsername = text.getText();
+							} else if(text.getData("field").toString().equals(FTP_PASSWORD_PARAM)) {
+								ftpPassword = text.getText();
+							} else {
+								metadata.add(new KeyValuePair<String, String>(text.getData("field").toString(), text.getText()));
+							}
 						}
 					}
 
@@ -259,13 +303,14 @@ public class SubmissionUI extends LogObject {
 						creator.setLog(logText);
 						creator.createIE(filenames, metadata);
 
+
 						FTPUploader uploader = new FTPUploader();
 						uploader.setLog(logText);
-						String depositDirectory = uploader.upload();
+						String depositDirectory = uploader.upload(ftpUsername, ftpPassword);
 
 						Depositor depositor = new Depositor();
 						depositor.setLog(logText);
-						depositor.Deposit(depositDirectory);
+						depositor.Deposit(depositDirectory, username, password);
 
 
 					} catch (Exception e) {
@@ -274,6 +319,7 @@ public class SubmissionUI extends LogObject {
 					}
 
 					exitButton.setEnabled(true);
+					resubmitButton.setEnabled(true);
 				}
 			}
 		});
@@ -290,6 +336,73 @@ public class SubmissionUI extends LogObject {
 		}
 
 		display.dispose();
+	}
+
+	private int createUsernamePasswordFields(int height) {
+		Text text;
+		Label label;
+		//username
+		label = new Label(shell, SWT.FLAT);
+		label.setText(USERNAME_PARAM);
+		label.setBounds(10, height, 100, 20);
+		label.setBackground(colorWhite);
+		label.setAlignment(SWT.LEFT);
+
+		text = new Text(shell, SWT.BORDER);
+		text.setBounds(120, height, 100, 20);
+		text.setData("field", USERNAME_PARAM);
+		if(username != null) {
+			text.setText(username);
+		}
+
+		//password
+		label = new Label(shell, SWT.FLAT);
+		label.setText(PASSWORD_PARAM);
+		label.setBounds(230, height, 100, 20);
+		label.setBackground(colorWhite);
+		label.setAlignment(SWT.LEFT);
+
+		text = new Text(shell, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
+		text.setBounds(335, height, 105, 20);
+		text.setData("field", PASSWORD_PARAM);
+		text.setEchoChar('*');
+		if(password != null) {
+			text.setText(password);
+		}
+
+		height += 27;
+
+		//username
+		label = new Label(shell, SWT.FLAT);
+		label.setText(FTP_USERNAME_PARAM);
+		label.setBounds(10, height, 100, 20);
+		label.setBackground(colorWhite);
+		label.setAlignment(SWT.LEFT);
+
+		text = new Text(shell, SWT.BORDER);
+		text.setBounds(120, height, 100, 20);
+		text.setData("field", FTP_USERNAME_PARAM);
+		if(ftpUsername != null) {
+			text.setText(ftpUsername);
+		}
+
+		//password
+		label = new Label(shell, SWT.FLAT);
+		label.setText(FTP_PASSWORD_PARAM);
+		label.setBounds(230, height, 100, 20);
+		label.setBackground(colorWhite);
+		label.setAlignment(SWT.LEFT);
+
+		text = new Text(shell, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
+		text.setBounds(335, height, 105, 20);
+		text.setData("field", FTP_PASSWORD_PARAM);
+		text.setEchoChar('*');
+		if(ftpPassword != null) {
+			text.setText(ftpPassword);
+		}
+
+		height += 27;
+		return height;
 	}
 
 	public static void main(String[] args) {
