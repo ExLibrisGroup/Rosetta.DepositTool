@@ -30,11 +30,6 @@ public class Depositor extends LogObject {
 	public void Deposit(String depositDirectory, String username, String password) throws Exception {
 
 		logTitle("STEP 3 - EXECUTING A DEPOSIT ACTIVITY");
-		log("Authenticating user details: " + username + "/**********");
-
-		// Connect to PDS
-		PdsClient pds = PdsClient.getInstance();
-		pds.init(DepositProperties.getValue(DepositProperties.PDS_URL), false);
 
 		// Get Deposit webservice handle
 		log("Connecting to the deposit web services");
