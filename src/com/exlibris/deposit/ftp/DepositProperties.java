@@ -11,7 +11,6 @@ public class DepositProperties {
 
 	public static String DEPOSIT_TEMP_DIR = "deposit.temp.dir";
 	
-	public static final String PDS_URL = "pds.url";
 	public static final String DEPOSIT_URL = "deposit.url";
 	public static final String REPOSITORY_URL = "repository.url";
 	public static final String BACKOFFICE_URL = "backoffice.url";
