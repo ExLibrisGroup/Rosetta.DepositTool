@@ -19,11 +19,9 @@ import com.exlibris.dps.DepositWebServices;
 import com.exlibris.dps.ProducerWebServices;
 import com.exlibris.dps.ProducerWebServices_Service;
 import com.exlibris.dps.sdk.pds.HeaderHandlerResolver;
-import com.exlibris.dps.sdk.pds.PdsClient;
 
 public class Depositor extends LogObject {
 
-	/* PDS Parameters */
 	private static final String DEPOSIT_WSDL_URL = "DepositWebServices?wsdl";
 	private static final String PRODUCER_WSDL_URL = "ProducerWebServices?wsdl";
 
